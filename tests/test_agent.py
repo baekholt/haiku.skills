@@ -45,6 +45,12 @@ from haiku.skills.state import SkillRunDeps
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+def _make_ctx(deps: Any = None) -> RunContext[Any]:
+    return RunContext(
+        deps=deps, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
+    )
+
+
 class TestSkillToolset:
     def test_create_with_paths(self):
         toolset = SkillToolset(skill_paths=[FIXTURES])
@@ -1618,7 +1624,7 @@ def _make_run_input(message: str) -> Any:
     )
 
 
-class TestSkillToolsetDelegate:
+class TestSkillToolsetDirect:
     """Tests for SkillToolset with delegate=False."""
 
     def test_delegate_true_by_default(self):
@@ -1645,9 +1651,7 @@ class TestSkillToolsetDelegate:
             tools=[greet],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         tool_names = set(tools.keys())
         assert "query_skill" in tool_names
@@ -1665,9 +1669,7 @@ class TestSkillToolsetDelegate:
             instructions="Do things.",
         )
         toolset = SkillToolset(skills=[skill], delegate=True)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         tool_names = set(tools.keys())
         assert "execute_skill" in tool_names
@@ -1691,9 +1693,7 @@ class TestSkillToolsetDelegate:
             resources=["references/REFERENCE.md"],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "query_skill", {"skill_name": "greeter"}, ctx, tools["query_skill"]
@@ -1705,9 +1705,7 @@ class TestSkillToolsetDelegate:
     async def test_query_skill_unknown_skill(self, allow_model_requests: None):
         """query_skill returns error for unknown skill."""
         toolset = SkillToolset(skill_paths=[FIXTURES], delegate=False)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "query_skill", {"skill_name": "nonexistent"}, ctx, tools["query_skill"]
@@ -1729,9 +1727,7 @@ class TestSkillToolsetDelegate:
             tools=[PydanticTool(greet)],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "query_skill", {"skill_name": "greeter"}, ctx, tools["query_skill"]
@@ -1756,9 +1752,7 @@ class TestSkillToolsetDelegate:
             toolsets=[fn_toolset],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "query_skill", {"skill_name": "math"}, ctx, tools["query_skill"]
@@ -1815,11 +1809,6 @@ class TestSkillToolCache:
 class TestExecuteSkillTool:
     """Tests for execute_skill_tool in delegate=False mode."""
 
-    def _make_ctx(self, deps: Any = None) -> RunContext[Any]:
-        return RunContext(
-            deps=deps, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
-
     async def test_calls_simple_tool(self, allow_model_requests: None):
         """execute_skill_tool calls a plain function tool."""
 
@@ -1834,7 +1823,7 @@ class TestExecuteSkillTool:
             tools=[greet],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -1862,7 +1851,7 @@ class TestExecuteSkillTool:
             tools=[fetch],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -1895,7 +1884,7 @@ class TestExecuteSkillTool:
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
         toolset.restore_state_snapshot({"ns.counter": {"count": 42}})
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -1924,7 +1913,7 @@ class TestExecuteSkillTool:
             state_namespace="ns.counter",
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -1953,7 +1942,7 @@ class TestExecuteSkillTool:
             tools=[emit_tool],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -1986,7 +1975,7 @@ class TestExecuteSkillTool:
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
         toolset._event_sink = sink
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2000,7 +1989,7 @@ class TestExecuteSkillTool:
 
     async def test_unknown_skill_returns_error(self, allow_model_requests: None):
         toolset = SkillToolset(skill_paths=[FIXTURES], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2017,7 +2006,7 @@ class TestExecuteSkillTool:
             instructions="Do things.",
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2039,7 +2028,7 @@ class TestExecuteSkillTool:
             tools=[exploding],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2067,7 +2056,7 @@ class TestExecuteSkillTool:
             toolsets=[fn_toolset],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2091,7 +2080,7 @@ class TestExecuteSkillTool:
             tools=[get_data],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "execute_skill_tool",
@@ -2105,11 +2094,6 @@ class TestExecuteSkillTool:
 class TestReadSkillResource:
     """Tests for read_skill_resource in delegate=False mode."""
 
-    def _make_ctx(self) -> RunContext[Any]:
-        return RunContext(
-            deps=None, model=TestModel(), usage=RunUsage(), prompt="test", run_step=0
-        )
-
     async def test_reads_valid_resource(self, allow_model_requests: None):
         skill = Skill(
             metadata=SkillMetadata(name="refs", description="Has refs."),
@@ -2118,7 +2102,7 @@ class TestReadSkillResource:
             resources=["references/REFERENCE.md", "assets/template.txt"],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "read_skill_resource",
@@ -2130,7 +2114,7 @@ class TestReadSkillResource:
 
     async def test_unknown_skill_returns_error(self, allow_model_requests: None):
         toolset = SkillToolset(skill_paths=[FIXTURES], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "read_skill_resource",
@@ -2147,7 +2131,7 @@ class TestReadSkillResource:
             instructions="Do things.",
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "read_skill_resource",
@@ -2166,7 +2150,7 @@ class TestReadSkillResource:
             resources=["references/REFERENCE.md"],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "read_skill_resource",
@@ -2185,7 +2169,7 @@ class TestReadSkillResource:
             resources=["references/REFERENCE.md"],
         )
         toolset = SkillToolset(skills=[skill], delegate=False)
-        ctx = self._make_ctx()
+        ctx = _make_ctx()
         tools = await toolset.get_tools(ctx)
         result = await toolset.call_tool(
             "read_skill_resource",
